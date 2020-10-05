@@ -1,66 +1,55 @@
 import React from "react"
+import moment from "moment"
 import { Link, graphql } from "gatsby"
+import {useSelector, useDispatch} from 'react-redux'
+import Layout from './../components/layout';
+var momentWithTimeZone = require('moment-timezone');
 
-import Bio from "../components/bio"
-import Layout from "../components/layout"
-import SEO from "../components/seo"
+const BlogIndex = (props) => {
+  const hours = useSelector(state => state.hours)
 
-const BlogIndex = ({ data, location }) => {
-  const siteTitle = data.site.siteMetadata?.title || `Title`
-  const posts = data.allMarkdownRemark.nodes
+  const clinicHoursWithTz = momentWithTimeZone.tz("America/New_York");
 
-  if (posts.length === 0) {
-    return (
-      <Layout location={location} title={siteTitle}>
-        <SEO title="All posts" />
-        <Bio />
-        <p>
-          No blog posts found. Add markdown posts to "content/blog" (or the
-          directory you specified for the "gatsby-source-filesystem" plugin in
-          gatsby-config.js).
-        </p>
-      </Layout>
-    )
+  const todaysHours = hours[clinicHoursWithTz.day()];
+  const tomorrow = clinicHoursWithTz.add(1, 'd')
+
+  const nextOpenCloseDate = (dt) => {
+    let newOpenCloseDate = {...dt, ...hours[dt.day]};
+    if(!newOpenCloseDate.close) {     
+      return nextOpenCloseDate({open: newOpenCloseDate.open, day: ++dt.day});
+    }
+    if(!newOpenCloseDate.open) {
+      return nextOpenCloseDate({close: newOpenCloseDate.close, day: --dt.day});
+    }
+    return {...newOpenCloseDate, day: tomorrow.day(), closeDay:dt.day};
+
   }
 
-  return (
-    <Layout location={location} title={siteTitle}>
-      <SEO title="All posts" />
-      <Bio />
-      <ol style={{ listStyle: `none` }}>
-        {posts.map(post => {
-          const title = post.frontmatter.title || post.fields.slug
 
-          return (
-            <li key={post.fields.slug}>
-              <article
-                className="post-list-item"
-                itemScope
-                itemType="http://schema.org/Article"
-              >
-                <header>
-                  <h2>
-                    <Link to={post.fields.slug} itemProp="url">
-                      <span itemProp="headline">{title}</span>
-                    </Link>
-                  </h2>
-                  <small>{post.frontmatter.date}</small>
-                </header>
-                <section>
-                  <p
-                    dangerouslySetInnerHTML={{
-                      __html: post.frontmatter.description || post.excerpt,
-                    }}
-                    itemProp="description"
-                  />
-                </section>
-              </article>
-            </li>
-          )
-        })}
-      </ol>
-    </Layout>
-  )
+  let open = momentWithTimeZone.tz(todaysHours.open,"hh:mm","America/New_York"); 
+  let close = momentWithTimeZone.tz(todaysHours.close, "hh:mm", "America/New_York"); 
+
+  const todayInHostTz = momentWithTimeZone.tz(moment(), "America/New_York");
+
+  const isOpen = todayInHostTz.isBetween(open, close)
+  
+  if(!isOpen){
+    let nextOpenHours = nextOpenCloseDate({day:tomorrow.day()});
+
+    open = momentWithTimeZone.tz(`${nextOpenHours.day} ${nextOpenHours.open}`,"e hh:mm","America/New_York"); 
+    close = momentWithTimeZone.tz(`${nextOpenHours.closeDay} ${nextOpenHours.close}`,"e hh:mm","America/New_York"); 
+  }
+
+
+  const adjustTime = (toDate)=>  moment(moment.utc(toDate, "MM/DD/YYYY hh:mm").toDate())
+
+  
+  return <Layout>HELLO
+      <p>Hello, the clinic {isOpen ? "is OPEN" : "is CLOSED"}</p>
+      <p>{moment().format("dddd, MMMM Do YYYY, h:mm:ss a")}</p>
+       {isOpen && <p>the clinic's hours today are: {adjustTime(open).format("ddd, hA z")} - {adjustTime(close).format("ddd, hA z")}</p>}
+       {!isOpen && <p>the clinic's next open hours are: {adjustTime(open).format("ddd, hA z")} - {adjustTime(close).format("ddd, hA z")}</p>}
+    </Layout>;
 }
 
 export default BlogIndex

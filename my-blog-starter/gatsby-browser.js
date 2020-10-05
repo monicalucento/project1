@@ -8,7 +8,3 @@ import "./src/style.css"
 
 // Highlighting for code blocks
 import "prismjs/themes/prism.css"
-
-
-import wrapWithProvider from "./src/wrap-with-provider"
-export const wrapRootElement = wrapWithProvider
