@@ -5,7 +5,7 @@ import {useSelector, useDispatch} from 'react-redux'
 import Layout from './../components/layout';
 var momentWithTimeZone = require('moment-timezone');
 
-const BlogIndex = (props) => {
+const BlogIndex = ({data, location}) => {
   const hours = useSelector(state => state.hours)
 
   const clinicHoursWithTz = momentWithTimeZone.tz("America/New_York");
@@ -43,8 +43,10 @@ const BlogIndex = (props) => {
 
   const adjustTime = (toDate)=>  moment(moment.utc(toDate, "MM/DD/YYYY hh:mm").toDate())
 
-  
-  return <Layout>HELLO
+  const siteTitle = data.site.siteMetadata.title
+
+  return <Layout location={location} title={siteTitle}>
+
       <p>Hello, the clinic {isOpen ? "is OPEN" : "is CLOSED"}</p>
       <p>{moment().format("dddd, MMMM Do YYYY, h:mm:ss a")}</p>
        {isOpen && <p>the clinic's hours today are: {adjustTime(open).format("ddd, hA z")} - {adjustTime(close).format("ddd, hA z")}</p>}
@@ -59,19 +61,6 @@ export const pageQuery = graphql`
     site {
       siteMetadata {
         title
-      }
-    }
-    allMarkdownRemark(sort: { fields: [frontmatter___date], order: DESC }) {
-      nodes {
-        excerpt
-        fields {
-          slug
-        }
-        frontmatter {
-          date(formatString: "MMMM DD, YYYY")
-          title
-          description
-        }
       }
     }
   }
